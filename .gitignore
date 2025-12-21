@@ -7,3 +7,4 @@ npm-debug.log
 *.sublime-workspace
 .vs
 .env
+backend-secret.yaml
