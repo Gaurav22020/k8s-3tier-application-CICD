@@ -8,3 +8,4 @@ npm-debug.log
 .vs
 .env
 backend-secret.yaml
+kubernetes/kubeconfig.yaml
