@@ -1,5 +1,5 @@
 pipeline {
-  agent any
+  agent { label 'agent-1' }
 
   environment {
     BACKEND_IMAGE = "gunnu007/backend"
@@ -41,6 +41,28 @@ pipeline {
       }
     }
 
+    stage('Login to Azure') {
+      steps {
+        withCredentials([
+          string(credentialsId: 'AZ_CLIENT_ID', variable: 'AZ_CLIENT_ID'),
+          string(credentialsId: 'AZ_CLIENT_SECRET', variable: 'AZ_CLIENT_SECRET'),
+          string(credentialsId: 'AZ_TENANT_ID', variable: 'AZ_TENANT_ID')
+        ]) {
+          sh '''
+            az login --service-principal \
+              -u $AZ_CLIENT_ID \
+              -p $AZ_CLIENT_SECRET \
+              --tenant $AZ_TENANT_ID
+
+            az aks get-credentials \
+              --resource-group $AKS_RG \
+              --name $AKS_NAME \
+              --overwrite-existing
+          '''
+        }
+      }
+    }
+
     stage('Create / Update Mongo Secret') {
       steps {
         withCredentials([
@@ -58,35 +80,17 @@ pipeline {
 
     stage('Deploy to AKS') {
       steps {
-        withCredentials([
-          string(credentialsId: 'AZ_CLIENT_ID', variable: 'AZ_CLIENT_ID'),
-          string(credentialsId: 'AZ_CLIENT_SECRET', variable: 'AZ_CLIENT_SECRET'),
-          string(credentialsId: 'AZ_TENANT_ID', variable: 'AZ_TENANT_ID')
-        ]) {
-          sh '''
-            set -e
+        sh '''
+          git checkout -- kubernetes/backend-deployment.yaml kubernetes/frontend-deployment.yaml
 
-            az login --service-principal \
-              -u $AZ_CLIENT_ID \
-              -p $AZ_CLIENT_SECRET \
-              --tenant $AZ_TENANT_ID
+          sed -i "s|gunnu007/backend:__TAG__|$BACKEND_IMAGE:$TAG|g" kubernetes/backend-deployment.yaml
+          sed -i "s|gunnu007/frontend:__TAG__|$FRONTEND_IMAGE:$TAG|g" kubernetes/frontend-deployment.yaml
 
-            az aks get-credentials \
-              --resource-group $AKS_RG \
-              --name $AKS_NAME \
-              --overwrite-existing
+          kubectl apply -f kubernetes/
 
-            git checkout -- kubernetes/backend-deployment.yaml kubernetes/frontend-deployment.yaml
-
-            sed -i "s|gunnu007/backend:__TAG__|$BACKEND_IMAGE:$TAG|g" kubernetes/backend-deployment.yaml
-            sed -i "s|gunnu007/frontend:__TAG__|$FRONTEND_IMAGE:$TAG|g" kubernetes/frontend-deployment.yaml
-
-            kubectl apply -f kubernetes/
-
-            kubectl rollout status deployment/backend -n $NAMESPACE
-            kubectl rollout status deployment/frontend -n $NAMESPACE
-          '''
-        }
+          kubectl rollout status deployment/backend -n $NAMESPACE
+          kubectl rollout status deployment/frontend -n $NAMESPACE
+        '''
       }
     }
   }
