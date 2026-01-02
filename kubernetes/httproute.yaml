@@ -11,7 +11,7 @@ spec:
   - matches:
     - path:
         type: PathPrefix
-        value: /
+        value: /api
     backendRefs:
     - name: backend-service
       port: 3001
