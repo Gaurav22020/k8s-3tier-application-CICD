@@ -21,6 +21,7 @@ pipeline {
     stage('Build Images') {
       steps {
         sh '''
+          set -e
           docker build -t $BACKEND_IMAGE:$TAG backend/
           docker build -t $FRONTEND_IMAGE:$TAG frontend/
         '''
@@ -33,6 +34,7 @@ pipeline {
           usernamePassword(credentialsId: 'docker-hub-cred', usernameVariable: 'U', passwordVariable: 'P')
         ]) {
           sh '''
+            set -e
             echo $P | docker login -u $U --password-stdin
             docker push $BACKEND_IMAGE:$TAG
             docker push $FRONTEND_IMAGE:$TAG
@@ -49,6 +51,7 @@ pipeline {
           string(credentialsId: 'AZ_TENANT_ID', variable: 'AZ_TENANT_ID')
         ]) {
           sh '''
+            set -e
             az login --service-principal \
               -u $AZ_CLIENT_ID \
               -p $AZ_CLIENT_SECRET \
@@ -63,12 +66,21 @@ pipeline {
       }
     }
 
+    stage('Ensure Namespace Exists') {
+      steps {
+        sh '''
+          kubectl get namespace $NAMESPACE || kubectl create namespace $NAMESPACE
+        '''
+      }
+    }
+
     stage('Create / Update Mongo Secret') {
       steps {
         withCredentials([
           string(credentialsId: 'mongo-uri', variable: 'MONGO_URI')
         ]) {
           sh '''
+            set -e
             kubectl create secret generic backend-secrets \
               --from-literal=MONGO_URI="$MONGO_URI" \
               -n $NAMESPACE \
@@ -81,6 +93,7 @@ pipeline {
     stage('Deploy to AKS') {
       steps {
         sh '''
+          set -e
           git checkout -- kubernetes/backend-deployment.yaml kubernetes/frontend-deployment.yaml
 
           sed -i "s|gunnu007/backend:__TAG__|$BACKEND_IMAGE:$TAG|g" kubernetes/backend-deployment.yaml
