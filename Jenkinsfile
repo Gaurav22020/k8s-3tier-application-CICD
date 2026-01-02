@@ -6,7 +6,7 @@ pipeline {
     FRONTEND_IMAGE = "gunnu007/frontend"
     TAG = "${env.BUILD_NUMBER}"
     AKS_NAME = "myaks"
-    AKS_RG = "myaks-rg"
+    AKS_RG = "myaks_group"
     NAMESPACE = "three-tier"
   }
 
