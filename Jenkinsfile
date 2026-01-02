@@ -9,7 +9,7 @@ pipeline {
     AKS_RG = "myaks_group"
     NAMESPACE = "three-tier"
   }
-
+//stages
   stages {
 
     stage('Checkout') {
