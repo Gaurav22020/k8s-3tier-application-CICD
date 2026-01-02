@@ -104,11 +104,13 @@ pipeline {
       }
     }
 
-    stage('Deploy Ingress') {
+    stage('Deploy Gateway API') {
       steps {
         sh '''
           set -e
-          kubectl apply -f kubernetes/ingress.yaml
+          kubectl apply -f kubernetes/gatewayclass.yaml
+          kubectl apply -f kubernetes/gateway.yaml
+          kubectl apply -f kubernetes/httproute.yaml
         '''
       }
     }
@@ -118,7 +120,8 @@ pipeline {
         sh '''
           kubectl rollout status deployment/backend -n $NAMESPACE
           kubectl rollout status deployment/frontend -n $NAMESPACE
-          kubectl get ingress -n $NAMESPACE
+          kubectl get gateway -n ingress-nginx
+          kubectl get httproute -n $NAMESPACE
         '''
       }
     }
