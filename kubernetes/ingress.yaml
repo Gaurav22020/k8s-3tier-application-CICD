@@ -1,10 +1,8 @@
 apiVersion: networking.k8s.io/v1
-kind: Ingress
 metadata:
   name: app-ingress
   namespace: three-tier
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+  # REMOVE rewrite annotation
 spec:
   ingressClassName: nginx
   rules:
