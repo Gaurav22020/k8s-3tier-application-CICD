@@ -90,7 +90,7 @@ pipeline {
       }
     }
 
-    stage('Deploy to AKS') {
+    stage('Deploy Application') {
       steps {
         sh '''
           set -e
@@ -100,9 +100,25 @@ pipeline {
           sed -i "s|gunnu007/frontend:__TAG__|$FRONTEND_IMAGE:$TAG|g" kubernetes/frontend-deployment.yaml
 
           kubectl apply -f kubernetes/
+        '''
+      }
+    }
 
+    stage('Deploy Ingress') {
+      steps {
+        sh '''
+          set -e
+          kubectl apply -f kubernetes/ingress.yaml
+        '''
+      }
+    }
+
+    stage('Verify Rollout') {
+      steps {
+        sh '''
           kubectl rollout status deployment/backend -n $NAMESPACE
           kubectl rollout status deployment/frontend -n $NAMESPACE
+          kubectl get ingress -n $NAMESPACE
         '''
       }
     }
